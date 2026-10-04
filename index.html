@@ -1,0 +1,301 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>One Thread -- How Noor experiences it</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", sans-serif;
+    background: linear-gradient(180deg, #fff7e6 0%, #eaf6ea 100%);
+    color: #3b2f2f;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 24px;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .subtitle { color: #6b5b4a; margin-bottom: 20px; font-size: 14px; }
+
+  .stage {
+    display: flex;
+    gap: 60px;
+    align-items: flex-end;
+    justify-content: center;
+    width: 100%;
+    max-width: 900px;
+    min-height: 420px;
+    position: relative;
+  }
+
+  .actor { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .actor-label { font-weight: 700; font-size: 13px; color: #6b5b4a; }
+
+  /* --- cartoon character --- */
+  .character { width: 90px; height: 120px; position: relative; }
+  .head { width: 54px; height: 54px; background: #e8b98a; border-radius: 50%; position: absolute; top: 0; left: 18px; }
+  .face-dot { width: 5px; height: 5px; background: #3b2f2f; border-radius: 50%; position: absolute; top: 24px; }
+  .eye-l { left: 30px; } .eye-r { left: 44px; }
+  .smile { width: 16px; height: 8px; border-bottom: 3px solid #3b2f2f; border-radius: 0 0 16px 16px; position: absolute; top: 34px; left: 29px; }
+  .scarf { width: 68px; height: 36px; background: #d66b4e; border-radius: 50% 50% 0 0 / 70% 70% 0 0; position: absolute; top: -6px; left: 11px; z-index: -1; }
+  .body-shape { width: 74px; height: 66px; background: #4e8a63; border-radius: 30px 30px 10px 10px; position: absolute; top: 50px; left: 8px; }
+  .visitor-head { background: #f0c9a0; }
+  .visitor-scarf { background: #4a80b0; border-radius: 50% 50% 50% 50% / 60% 60% 10% 10%; height: 20px; top: -2px; }
+  .visitor-body { background: #e0a23c; }
+
+  /* --- phones --- */
+  .phone-basic {
+    width: 120px; height: 220px; background: #2b2b2b; border-radius: 18px;
+    padding: 10px 10px 16px; box-shadow: 0 8px 18px rgba(0,0,0,.25);
+  }
+  .phone-basic .screen {
+    background: #cfe8d8; border-radius: 6px; height: 120px; padding: 6px;
+    font-size: 10px; overflow: hidden; display: flex; flex-direction: column; gap: 4px;
+  }
+  .keypad { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; margin-top: 8px; }
+  .keypad div { background: #444; height: 10px; border-radius: 3px; }
+
+  .phone-smart {
+    width: 130px; height: 240px; background: #111; border-radius: 26px;
+    padding: 10px; box-shadow: 0 8px 18px rgba(0,0,0,.25);
+  }
+  .phone-smart .screen {
+    background: #fff; border-radius: 14px; height: 200px; padding: 8px;
+    font-size: 10px; overflow: hidden; display: flex; flex-direction: column; gap: 4px;
+  }
+  .home-bar { width: 40px; height: 4px; background: #555; border-radius: 2px; margin: 8px auto 0; }
+
+  .bubble { max-width: 90%; padding: 5px 8px; border-radius: 10px; line-height: 1.3; animation: pop .25s ease; }
+  .bubble.in { align-self: flex-start; background: #eee; }
+  .bubble.out { align-self: flex-end; background: #c9f0c9; }
+  .bubble .sub { display:block; color:#777; font-size:8.5px; margin-top:2px; }
+  @keyframes pop { from { opacity:0; transform: scale(.85); } to { opacity:1; transform: scale(1); } }
+
+  .badge {
+    position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+    background: #ffcf4d; color: #4a3200; font-size: 11px; font-weight: 700;
+    padding: 4px 10px; border-radius: 12px; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,.15);
+  }
+  .phone-wrap { position: relative; }
+
+  .counter-row { display:flex; gap: 10px; justify-content:center; margin-top: 6px; }
+  .dot3 { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #4e8a63; display:flex; align-items:center; justify-content:center; font-size:11px; color:#4e8a63; font-weight:700; }
+  .dot3.filled { background:#4e8a63; color:#fff; }
+
+  .caption-box {
+    margin-top: 26px; max-width: 640px; text-align: center;
+    background: #fff; border-radius: 16px; padding: 16px 24px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.08); font-size: 16px; min-height: 48px;
+  }
+
+  .controls { margin-top: 18px; display: flex; align-items: center; gap: 14px; }
+  button {
+    font-family: inherit; font-size: 14px; font-weight: 700; border: none; border-radius: 20px;
+    padding: 8px 18px; cursor: pointer; background: #4e8a63; color: #fff;
+  }
+  button.secondary { background: #e0a23c; }
+  button:disabled { opacity: .4; cursor: default; }
+
+  .dots { display: flex; gap: 6px; margin-top: 10px; }
+  .dots span { width: 8px; height: 8px; border-radius: 50%; background: #ddd; cursor: pointer; }
+  .dots span.active { background: #4e8a63; }
+</style>
+</head>
+<body>
+
+<h1>One Thread -- how Noor actually experiences it</h1>
+<div class="subtitle">No app. No dashboard. Just her own phone, texting like she already does.</div>
+
+<div class="stage">
+  <div class="actor">
+    <div class="actor-label">Visitor (smartphone)</div>
+    <div class="phone-wrap">
+      <div id="visitor-badge"></div>
+      <div class="phone-smart"><div class="screen" id="visitor-screen"></div><div class="home-bar"></div></div>
+    </div>
+    <div class="character">
+      <div class="scarf visitor-scarf" style="background:#4a80b0; border-radius:50%; width:30px; height:30px; top:-4px; left:30px;"></div>
+      <div class="head visitor-head"></div>
+      <div class="face-dot eye-l"></div><div class="face-dot eye-r"></div><div class="smile"></div>
+      <div class="body-shape visitor-body"></div>
+    </div>
+  </div>
+
+  <div class="actor">
+    <div class="actor-label">Noor (basic phone)</div>
+    <div class="phone-wrap">
+      <div id="noor-badge"></div>
+      <div class="phone-basic"><div class="screen" id="noor-screen"></div><div class="keypad"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
+    </div>
+    <div class="character">
+      <div class="scarf"></div>
+      <div class="head"></div>
+      <div class="face-dot eye-l"></div><div class="face-dot eye-r"></div><div class="smile"></div>
+      <div class="body-shape"></div>
+    </div>
+  </div>
+</div>
+
+<div class="caption-box" id="caption">Loading...</div>
+
+<div class="controls">
+  <button id="prevBtn" class="secondary">&laquo; Prev</button>
+  <button id="playBtn">&#9654; Autoplay</button>
+  <button id="nextBtn">Next &raquo;</button>
+</div>
+<div class="dots" id="dots"></div>
+
+<script>
+const scenes = [
+  {
+    caption: "Meet Noor. She grows coffee, hosts 6-7 visitors a month, and owns a basic phone -- calls, texts, mobile money. No app, no smartphone, no wifi at home.",
+    noor: [], visitor: []
+  },
+  {
+    caption: "A tourist finds her farm by word of mouth and texts her number for the first time -- in English.",
+    noor: [], visitor: [{side:'out', text:'Hello, can I visit the farm?'}]
+  },
+  {
+    caption: "The message arrives on Noor's phone already translated to Arabic -- before she even opens it. No app, no one else has to help her read it.",
+    noor: [{side:'in', text:'مرحبا، هل يمكنني زيارة المزرعة؟', sub:'(auto-translated from English)'}],
+    visitor: [{side:'out', text:'Hello, can I visit the farm?'}]
+  },
+  {
+    caption: "The visitor asks to come during her busiest pruning week.",
+    noor: [{side:'in', text:'مرحبا، هل يمكنني زيارة المزرعة؟', sub:'(auto-translated from English)'}],
+    visitor: [{side:'out', text:'Hello, can I visit the farm?'}, {side:'out', text:'Can I come Oct 20, with 2 friends?'}]
+  },
+  {
+    caption: "The tool checks her own calendar first. It does NOT auto-confirm -- it asks Noor, because that week matters to her farm.",
+    badgeNoor: '⚠️ Protected week',
+    noor: [{side:'in', text:'مرحبا، هل يمكنني زيارة المزرعة؟', sub:'(auto-translated from English)'},
+           {side:'in', text:'طلب حجز: 20 أكتوبر، ضيفان. هذا الأسبوع عادة أسبوع تقليم. هل ما زلتِ تريدين الاستضافة، أم تقترحين تاريخًا آخر؟ ردي بـ نعم أو لا.'}],
+    visitor: [{side:'out', text:'Hello, can I visit the farm?'}, {side:'out', text:'Can I come Oct 20, with 2 friends?'}]
+  },
+  {
+    caption: "Noor just replies like any normal text message. No login, no app to learn.",
+    noor: [{side:'in', text:'مرحبا، هل يمكنني زيارة المزرعة؟', sub:'(auto-translated from English)'},
+           {side:'in', text:'طلب حجز: 20 أكتوبر، ضيفان. هذا الأسبوع عادة أسبوع تقليم. هل ما زلتِ تريدين الاستضافة، أم تقترحين تاريخًا آخر؟ ردي بـ نعم أو لا.'},
+           {side:'out', text:'نعم'}],
+    visitor: [{side:'out', text:'Hello, can I visit the farm?'}, {side:'out', text:'Can I come Oct 20, with 2 friends?'}]
+  },
+  {
+    caption: "The visitor gets an instant confirmation -- only because Noor said yes.",
+    noor: [{side:'in', text:'مرحبا، هل يمكنني زيارة المزرعة؟', sub:'(auto-translated from English)'},
+           {side:'in', text:'طلب حجز: 20 أكتوبر، ضيفان. هذا الأسبوع عادة أسبوع تقليم. هل ما زلتِ تريدين الاستضافة، أم تقترحين تاريخًا آخر؟ ردي بـ نعم أو لا.'},
+           {side:'out', text:'نعم'}],
+    visitor: [{side:'out', text:'Hello, can I visit the farm?'}, {side:'out', text:'Can I come Oct 20, with 2 friends?'},
+              {side:'in', text:'Confirmed! See you on Oct 20.'}]
+  },
+  {
+    caption: "A day or two after the visit, one light question goes out automatically -- through the same thread, nothing new to set up.",
+    noor: [],
+    visitor: [{side:'in', text:"Thanks for visiting! What's one thing you'd want a friend to know?"}]
+  },
+  {
+    caption: "The visitor's reply mentions someone who wasn't there.",
+    noor: [],
+    visitor: [{side:'in', text:"Thanks for visiting! What's one thing you'd want a friend to know?"},
+              {side:'out', text:'My friend also wants to visit the farm!'}]
+  },
+  {
+    caption: "Noor didn't have to ask or check anything. A ready-to-send invite shows up on her phone, on its own.",
+    badgeNoor: '📨 Unprompted: referral ready',
+    noor: [{side:'in', text:'أحد الزوار ذكر صديقًا يريد الزيارة. دعوة جاهزة للإرسال -- هل أرسلها؟ ردي بـ نعم أو لا.'}],
+    visitor: []
+  },
+  {
+    caption: "Over the season, one visitor mentions wanting to buy her coffee beans. One comment alone isn't acted on -- it's just logged.",
+    counter: 1,
+    noor: [], visitor: []
+  },
+  {
+    caption: "A second, different visitor says almost the same thing.",
+    counter: 2,
+    noor: [], visitor: []
+  },
+  {
+    caption: "A third visitor says it too. Only now -- a real, repeating pattern -- does Noor hear about it.",
+    counter: 3,
+    badgeNoor: '☕ 3rd time -- now a real proposal',
+    noor: [{side:'in', text:'3 زوار سألوا الآن عن بيع حبوب القهوة الخاصة بك. هل تريدين تقديمها كخدمة حقيقية -- بسعرك وموعدك؟ ردي بـ نعم أو لا.'}],
+    visitor: []
+  },
+  {
+    caption: "No dashboard. No app to learn. Just her own phone, texting like she always has -- now with translation, memory of her calendar, and a sense of which question she should be asking.",
+    noor: [], visitor: []
+  }
+];
+
+let i = 0;
+let playing = false;
+let timer = null;
+
+const noorScreen = document.getElementById('noor-screen');
+const visitorScreen = document.getElementById('visitor-screen');
+const caption = document.getElementById('caption');
+const noorBadge = document.getElementById('noor-badge');
+const visitorBadge = document.getElementById('visitor-badge');
+const dotsEl = document.getElementById('dots');
+
+scenes.forEach((_, idx) => {
+  const d = document.createElement('span');
+  d.onclick = () => { stop(); i = idx; render(); };
+  dotsEl.appendChild(d);
+});
+
+function bubbleHTML(m) {
+  return `<div class="bubble ${m.side === 'out' ? 'out' : 'in'}">${m.text}${m.sub ? `<span class="sub">${m.sub}</span>` : ''}</div>`;
+}
+
+function counterHTML(n) {
+  let html = '<div class="counter-row">';
+  for (let k = 1; k <= 3; k++) {
+    html += `<div class="dot3 ${k <= n ? 'filled' : ''}">${k <= n ? '✓' : k}</div>`;
+  }
+  html += '</div><div style="text-align:center;font-size:10px;margin-top:4px;">coffee bean mentions</div>';
+  return html;
+}
+
+function render() {
+  const s = scenes[i];
+  noorScreen.innerHTML = (s.noor || []).map(bubbleHTML).join('');
+  visitorScreen.innerHTML = (s.visitor || []).map(bubbleHTML).join('');
+  if (s.counter) {
+    visitorScreen.innerHTML = counterHTML(s.counter);
+  }
+  noorBadge.innerHTML = s.badgeNoor ? `<div class="badge">${s.badgeNoor}</div>` : '';
+  visitorBadge.innerHTML = s.badgeVisitor ? `<div class="badge">${s.badgeVisitor}</div>` : '';
+  caption.textContent = s.caption;
+  document.getElementById('prevBtn').disabled = i === 0;
+  document.getElementById('nextBtn').disabled = i === scenes.length - 1;
+  [...dotsEl.children].forEach((d, idx) => d.classList.toggle('active', idx === i));
+}
+
+function next() { if (i < scenes.length - 1) { i++; render(); } else { stop(); } }
+function prev() { if (i > 0) { i--; render(); } }
+
+function play() {
+  playing = true;
+  document.getElementById('playBtn').textContent = '⏸ Pause';
+  timer = setInterval(() => {
+    if (i >= scenes.length - 1) { stop(); return; }
+    next();
+  }, 3200);
+}
+function stop() {
+  playing = false;
+  document.getElementById('playBtn').textContent = '▶ Autoplay';
+  clearInterval(timer);
+}
+
+document.getElementById('nextBtn').onclick = () => { stop(); next(); };
+document.getElementById('prevBtn').onclick = () => { stop(); prev(); };
+document.getElementById('playBtn').onclick = () => { playing ? stop() : play(); };
+
+render();
+</script>
+</body>
+</html>
