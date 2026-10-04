@@ -7,3 +7,7 @@ __pycache__/
 data/*.json
 data/threads/*.json
 .claude/
+
+# Local-only, not for the repo
+one_thread_pitch_deck.pptx
+demo_video_script.md

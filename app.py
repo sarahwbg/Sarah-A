@@ -10,8 +10,10 @@ from engine import (
     classify_doors,
     proactive_rules,
     reply_decision,
+    semantic_match,
     sender,
     threshold_watch,
+    timing_extract,
     translate,
 )
 
@@ -114,6 +116,29 @@ def send_message(visitor_id):
     )
     storage.save_thread(thread)
 
+    # Heads-up only, never a booking -- see engine/timing_extract.py. The
+    # structured form in request_booking() remains the only way an actual
+    # booking gets created.
+    if sender_role == "visitor":
+        translated_en = translated_text if tgt_lang == "en" else text
+        profile = storage.load_profile()
+        timing = timing_extract.extract_timing(translated_en, profile) if profile else None
+        if timing:
+            pending = storage.load_pending_actions()
+            pending.append(
+                {
+                    "id": uuid.uuid4().hex[:8],
+                    "type": "timing_mention",
+                    "visitor_id": visitor_id,
+                    "status": "pending",
+                    "payload": {
+                        "message_to_noor": tmpl.timing_mention_noor(thread["name"], timing),
+                    },
+                    "created_at": datetime.datetime.now().isoformat(timespec="seconds"),
+                }
+            )
+            storage.save_pending_actions(pending)
+
     # Noor answering a pending action is a normal text reply, not a button
     # click -- this is what makes "reply YES or NO" actually work over SMS.
     if sender_role == "noor":
@@ -172,7 +197,12 @@ def apply_decision(action, decision):
             msg = tmpl.booking_confirmed_visitor(action["payload"]["date"], action["payload"]["headcount"])
             sender.send(visitor_id, msg)
         elif action["type"] == "referral_card":
-            sender.send(action["payload"]["referred_hint"], action["payload"]["card_text"])
+            # Hard rule: One Thread never contacts anyone it doesn't already
+            # have an opted-in relationship with. The card goes back to the
+            # ORIGINAL visitor to share themselves -- never sent directly to
+            # a referred friend, whose contact info this system never
+            # acquires or stores in the first place.
+            sender.send(visitor_id, tmpl.referral_card_for_visitor(action["payload"]["card_text"]))
         elif action["type"] == "product_proposal":
             profile = storage.load_profile()
             name = action["payload"]["proposed_offering_name"]
@@ -204,6 +234,17 @@ def submit_feedback(visitor_id):
     translated_en = translated_text if tgt_lang == "en" else text
 
     result = classify_doors.classify(translated_en)
+    if confidence < classify_doors.LOW_CONFIDENCE_THRESHOLD:
+        # Don't trust a door match built on a translation we're not
+        # confident in -- fall through to the unclear-flag safety net below
+        # instead of acting on it.
+        result = {"door": "none", "signal_key": None}
+
+    counters = storage.load_demand_counters()
+    if result["door"] == "new_product" and not result["signal_key"]:
+        result["signal_key"], counters["clusters"] = semantic_match.resolve_signal_key(
+            translated_en, counters["clusters"]
+        )
 
     thread["feedback"] = {
         "raw": text,
@@ -229,6 +270,20 @@ def submit_feedback(visitor_id):
 
     pending = storage.load_pending_actions()
 
+    if result["door"] == "none":
+        pending.append(
+            {
+                "id": uuid.uuid4().hex[:8],
+                "type": "unclear_flag",
+                "visitor_id": visitor_id,
+                "status": "pending",
+                "payload": {
+                    "message_to_noor": tmpl.unclear_flag_noor(translated_en),
+                },
+                "created_at": datetime.datetime.now().isoformat(timespec="seconds"),
+            }
+        )
+
     if result["door"] == "referral":
         pending.append(
             {
@@ -238,7 +293,6 @@ def submit_feedback(visitor_id):
                 "status": "pending",
                 "payload": {
                     "card_text": tmpl.referral_card_draft(thread["name"], "their friend"),
-                    "referred_hint": "their friend",
                     "message_to_noor": tmpl.referral_prompt_noor(),
                 },
                 "created_at": datetime.datetime.now().isoformat(timespec="seconds"),
@@ -246,11 +300,18 @@ def submit_feedback(visitor_id):
         )
 
     if result["door"] == "new_product" and result["signal_key"]:
-        counters = storage.load_demand_counters()
-        count = threshold_watch.record_signal(counters, result["signal_key"])
-        crossed = threshold_watch.check_crossed(counters, result["signal_key"], count)
-        storage.save_demand_counters(counters)
+        signal_key = result["signal_key"]
+        count = threshold_watch.record_signal(counters, signal_key)
+        crossed = threshold_watch.check_crossed(counters, signal_key, count)
         if crossed:
+            if signal_key in tmpl.KNOWN_PRODUCT_LABELS:
+                proposed_name = signal_key.replace("_", " ").title()
+                message_to_noor = tmpl.product_proposal_noor(signal_key, count)
+            else:
+                anchor_text = counters["clusters"][signal_key]["anchor_text"]
+                anchor_ar, _ = translate.translate(anchor_text, "en", "ar")
+                proposed_name = anchor_text.title()
+                message_to_noor = tmpl.product_proposal_noor_generic(anchor_ar, count)
             pending.append(
                 {
                     "id": uuid.uuid4().hex[:8],
@@ -258,15 +319,16 @@ def submit_feedback(visitor_id):
                     "visitor_id": visitor_id,
                     "status": "pending",
                     "payload": {
-                        "signal_key": result["signal_key"],
+                        "signal_key": signal_key,
                         "count": count,
-                        "proposed_offering_name": result["signal_key"].replace("_", " ").title(),
-                        "message_to_noor": tmpl.product_proposal_noor(result["signal_key"], count),
+                        "proposed_offering_name": proposed_name,
+                        "message_to_noor": message_to_noor,
                     },
                     "created_at": datetime.datetime.now().isoformat(timespec="seconds"),
                 }
             )
 
+    storage.save_demand_counters(counters)
     storage.save_pending_actions(pending)
     return redirect(url_for("thread_view", visitor_id=visitor_id))
 

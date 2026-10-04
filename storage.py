@@ -82,7 +82,9 @@ def save_feedback_log(log):
 
 
 def load_demand_counters():
-    return load_json("demand_counters.json", {"counts": {}, "notified": []})
+    data = load_json("demand_counters.json", {"counts": {}, "notified": [], "clusters": {}})
+    data.setdefault("clusters", {})
+    return data
 
 
 def save_demand_counters(data):
