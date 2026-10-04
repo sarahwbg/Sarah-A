@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block content %}
+<a class="back-link" href="{{ url_for('index') }}">&laquo; back to Noor's phone</a>
+<h2 style="text-align:center">{{ thread.name }}</h2>
+
+<div class="phones-row">
+
+  <!-- VISITOR'S PHONE -->
+  <div class="phone-col">
+    <div class="phone-label">Visitor (smartphone)</div>
+    <div class="phone-frame smart">
+      <div class="phone-screen">
+        {% for m in thread.messages %}
+          <div class="bubble {{ 'out' if m.from == 'visitor' else 'in' }}">
+            {{ m.original }}
+            <span class="sub">&rarr; {{ m.translated }}</span>
+            {% if m.confidence < 0.6 %}<span class="low-confidence">low confidence -- confirm with Noor</span>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+      <div class="home-bar"></div>
+    </div>
+
+    <div class="composer">
+      <div class="composer-label">Type as the visitor</div>
+      <form method="post" action="{{ url_for('send_message', visitor_id=thread.visitor_id) }}">
+        <input type="hidden" name="sender_role" value="visitor">
+        <select name="lang"><option value="en">EN</option><option value="ar">AR</option></select>
+        <input type="text" name="text" placeholder="Message...">
+        <button type="submit">Send</button>
+      </form>
+
+      <div class="composer-label">Request a booking</div>
+      <form method="post" action="{{ url_for('request_booking', visitor_id=thread.visitor_id) }}">
+        <input type="date" name="date" required>
+        <input type="number" name="headcount" min="1" value="2" required style="max-width:70px;">
+        <button type="submit">Book</button>
+      </form>
+
+      <div class="composer-label">Post-visit feedback</div>
+      <form method="post" action="{{ url_for('submit_feedback', visitor_id=thread.visitor_id) }}">
+        <select name="lang"><option value="en">EN</option><option value="ar">AR</option></select>
+        <input type="text" name="text" placeholder="What would you tell a friend?">
+        <button type="submit">Send</button>
+      </form>
+      {% if thread.feedback %}<div class="composer-label">Logged door: {{ thread.feedback.door }}</div>{% endif %}
+    </div>
+  </div>
+
+  <!-- NOOR'S PHONE -->
+  <div class="phone-col">
+    <div class="phone-label">Noor (basic phone)</div>
+    <div class="phone-frame basic">
+      <div class="phone-screen">
+        {% for m in thread.messages %}
+          <div class="bubble {{ 'out' if m.from == 'noor' else 'in' }}">
+            {{ m.original }}
+            <span class="sub">&rarr; {{ m.translated }}</span>
+          </div>
+        {% endfor %}
+
+        {% for a in pending %}
+          {% if a.status == 'pending' %}
+          <div class="system-bubble">
+            {{ a.payload.message_to_noor }}
+            {% if a.type == 'referral_card' %}<span class="sub">&rarr; "{{ a.payload.card_text }}"</span>{% endif %}
+            <div class="quick-replies">
+              <form method="post" action="{{ url_for('decide_pending', action_id=a.id) }}">
+                <input type="hidden" name="decision" value="approve">
+                <button class="yes" type="submit">نعم</button>
+              </form>
+              <form method="post" action="{{ url_for('decide_pending', action_id=a.id) }}">
+                <input type="hidden" name="decision" value="decline">
+                <button class="no" type="submit">لا</button>
+              </form>
+            </div>
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+      <div class="keypad-dots">
+        <div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+      </div>
+    </div>
+
+    <div class="composer">
+      <div class="composer-label">Type as Noor</div>
+      <form method="post" action="{{ url_for('send_message', visitor_id=thread.visitor_id) }}">
+        <input type="hidden" name="sender_role" value="noor">
+        <select name="lang"><option value="ar">AR</option><option value="en">EN</option></select>
+        <input type="text" name="text" placeholder="Reply...">
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

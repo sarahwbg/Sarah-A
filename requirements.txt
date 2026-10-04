@@ -1,0 +1,7 @@
+Flask>=3.0
+pytest>=7.0
+
+# Optional, only needed if TRANSLATOR_BACKEND=m2m100:
+# transformers
+# torch
+# sentencepiece

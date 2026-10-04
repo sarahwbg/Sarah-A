@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="phones-row">
+  <div class="phone-col">
+    <div class="phone-label">Noor's phone -- home screen</div>
+    <div class="phone-frame basic">
+      <div class="phone-screen">
+
+        {% if top_item %}
+        <div class="notification">
+          <strong>&#128276; رسالة جديدة</strong>
+          {{ top_item.payload.message_to_noor }}
+          {% if top_item.type == 'referral_card' %}<br><span class="sub">&rarr; "{{ top_item.payload.card_text }}"</span>{% endif %}
+          <br><a href="{{ url_for('thread_view', visitor_id=top_item.visitor_id) }}">Open</a>
+        </div>
+        {% endif %}
+
+        <div class="inbox-list">
+          {% for t in threads %}
+            <a class="inbox-row" href="{{ url_for('thread_view', visitor_id=t.visitor_id) }}">
+              <span>{{ t.name }}</span>
+              {% if t.feedback %}<span class="tag">{{ t.feedback.door }}</span>{% endif %}
+            </a>
+          {% endfor %}
+        </div>
+
+      </div>
+      <div class="keypad-dots">
+        <div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+      </div>
+    </div>
+
+    <div class="composer">
+      <div class="composer-label">New visitor thread</div>
+      <form method="post" action="{{ url_for('new_thread') }}">
+        <input type="text" name="name" placeholder="Visitor name">
+        <button type="submit">Start</button>
+      </form>
+    </div>
+    <div class="pending-count">{{ pending_count }} item(s) waiting for Noor's decision</div>
+  </div>
+</div>
+
+<div class="settings-panel">
+  <strong>Noor's calendar &amp; offerings</strong> (set once, behind the scenes)
+  <ul>{% for o in profile.offerings %}<li>{{ o }}</li>{% endfor %}</ul>
+  <a href="{{ url_for('onboarding') }}">Edit calendar &amp; offerings</a>
+</div>
+
+{% endblock %}

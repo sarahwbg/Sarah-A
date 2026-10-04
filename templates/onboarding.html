@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Noor's calendar -- set once, used for every booking check</h2>
+<form method="post">
+  <fieldset>
+    <legend>Protected window (e.g. pruning) -- bookings here need your explicit yes</legend>
+    <input name="protected_label" placeholder="Label (e.g. pruning)"
+           value="{{ profile.protected_windows[0].label if profile.get('protected_windows') else '' }}">
+    <input type="date" name="protected_start"
+           value="{{ profile.protected_windows[0].start if profile.get('protected_windows') else '' }}">
+    <input type="date" name="protected_end"
+           value="{{ profile.protected_windows[0].end if profile.get('protected_windows') else '' }}">
+  </fieldset>
+  <fieldset>
+    <legend>Recommended window (e.g. harvest peak) -- good time to suggest to visitors</legend>
+    <input name="recommended_label" placeholder="Label (e.g. harvest peak)"
+           value="{{ profile.recommended_windows[0].label if profile.get('recommended_windows') else '' }}">
+    <input type="date" name="recommended_start"
+           value="{{ profile.recommended_windows[0].start if profile.get('recommended_windows') else '' }}">
+    <input type="date" name="recommended_end"
+           value="{{ profile.recommended_windows[0].end if profile.get('recommended_windows') else '' }}">
+  </fieldset>
+  <label>Offerings (comma-separated)</label><br>
+  <input name="offerings" size="60"
+         value="{{ profile.offerings|join(', ') if profile.get('offerings') else '' }}">
+  <br><br>
+  <button type="submit">Save</button>
+</form>
+{% endblock %}
