@@ -29,9 +29,26 @@ feedback classifier -- not a general-purpose chatbot.
   natural conversation was cut for time; a structured quick-entry point
   achieves the same guardrail goal (no hallucinated dates) more
   reliably. Real entity extraction is a named upgrade path.
+- **That form only exists because this prototype's "thread" is a web
+  page standing in for both phones.** Over real SMS there is no screen
+  to show a form on, so this specific piece doesn't carry over as-is.
+  A real deployment would replace it with structured plain-text replies
+  (e.g. the thread asks for a date, then a headcount, one short question
+  at a time) parsed the same deterministic way `reply_decision.py`
+  parses "نعم"/"لا" -- still no free-text NLP, just more of the same
+  guardrail pattern applied to two more fields.
 - **Every fact-stating message is a filled template**
   (`message_templates.py`), never model output. The only model calls in
   this codebase are translation and (if swapped in) speech-to-text.
+- **The feedback classifier is fixed-keyword matching, not a trained
+  model.** This is partly deliberate (no hallucinated categories, fully
+  auditable) and partly a scope call given hackathon time -- a trained
+  classifier (e.g. on MASSIVE) was out of reach in the time available.
+  One consequence: in real-AI translation mode, the model's phrasing can
+  drift from the fixed keyword list, so a trigger (referral, product
+  proposal) can be missed even when the visitor's intent is there. Mock
+  mode's curated phrases are tuned to match the keywords, which is why
+  it's the reliable one for a live demo.
 
 ## Architecture
 
